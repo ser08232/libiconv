@@ -85,17 +85,7 @@ __bsd___iconv_open(const char *out, const char *in, struct _citrus_iconv *handle
 	errno = serrno;
 #endif
 	handle->cv_shared->ci_discard_ilseq = strcasestr(out, "//IGNORE");
-#ifdef __APPLE__
-	/*
-	 * Restore behavior with do_conv() failings to the GNU compatible one.
-	 * The old behavior isn't technically POSIX conformant, but a number of
-	 * high profile applications depend on it.
-	 */
-	handle->cv_shared->ci_ilseq_invalid = true;
-	handle->cv_shared->ci_translit = strcasestr(out, "//TRANSLIT");
-#else
 	handle->cv_shared->ci_ilseq_invalid = false;
-#endif
 	handle->cv_shared->ci_hooks = NULL;
 
 	return ((iconv_t)(void *)handle);
@@ -239,11 +229,7 @@ __bsd_iconvlist(int (*do_one) (unsigned int, const char * const *,
 		if (curkey == NULL)
 			goto out;
 		names[j++] = curkey;
-#ifdef __APPLE__
-		for (; (i < sz) && (strncmp(curkey, list[i], strlen(curkey)) == 0); i++) {
-#else
 		for (; (i < sz) && (memcmp(curkey, list[i], strlen(curkey)) == 0); i++) {
-#endif
 			slashpos = strchr(list[i], '/');
 			if (strcmp(curkey, &slashpos[1]) == 0)
 				continue;
@@ -305,11 +291,10 @@ __bsd_iconvctl(iconv_t cd, int request, void *argument)
 		*i = (srclen == strlen(dst)) && !memcmp(convname, dst, srclen);
 		return (0);
 	case ICONV_GET_TRANSLITERATE:
-		*i = cv->cv_shared->ci_translit ? 1 : 0;
+		*i = 1;
 		return (0);
 	case ICONV_SET_TRANSLITERATE:
-		cv->cv_shared->ci_translit = *i;
-		return  (0);
+		return  ((*i == 1) ? 0 : -1);
 	case ICONV_GET_DISCARD_ILSEQ:
 		*i = cv->cv_shared->ci_discard_ilseq ? 1 : 0;
 		return (0);
@@ -320,31 +305,8 @@ __bsd_iconvctl(iconv_t cd, int request, void *argument)
 		cv->cv_shared->ci_hooks = hooks;
 		return (0);
 	case ICONV_SET_FALLBACKS:
-#ifdef __APPLE__
-		if (argument == NULL) {
-			if (cv->cv_fallbacks != NULL) {
-				memset(cv->cv_fallbacks, 0,
-				    sizeof(*cv->cv_fallbacks));
-			}
-
-			return (0);
-		}
-
-		if (cv->cv_fallbacks == NULL) {
-			/* Not often used; just allocate on first use */
-			cv->cv_fallbacks =
-			    malloc(sizeof(*cv->cv_fallbacks));
-			if (cv->cv_fallbacks == NULL)
-				return (-1);
-		}
-
-		memcpy(cv->cv_fallbacks, argument,
-		    sizeof(*cv->cv_fallbacks));
-		return (0);
-#else
 		errno = EOPNOTSUPP;
 		return (-1);
-#endif
 	case ICONV_GET_ILSEQ_INVALID:
 		*i = cv->cv_shared->ci_ilseq_invalid ? 1 : 0;
 		return (0);

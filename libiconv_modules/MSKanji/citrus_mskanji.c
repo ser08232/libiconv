@@ -123,7 +123,6 @@ _mskanji2(int c)
 	return ((c >= 0x40 && c <= 0x7e) || (c >= 0x80 && c <= 0xfc));
 }
 
-#ifndef __APPLE__
 static __inline void
 /*ARGSUSED*/
 _citrus_MSKanji_init_state(_MSKanjiEncodingInfo * __restrict ei __unused,
@@ -132,7 +131,6 @@ _citrus_MSKanji_init_state(_MSKanjiEncodingInfo * __restrict ei __unused,
 
 	s->chlen = 0;
 }
-#endif
 
 #if 0
 static __inline void
@@ -167,12 +165,7 @@ _citrus_MSKanji_mbrtowc_priv(_MSKanjiEncodingInfo * __restrict ei,
 	s0 = *s;
 
 	if (s0 == NULL) {
-#ifdef __APPLE__
-		(void)ei;
-		memset(psenc, 0, sizeof(*psenc));
-#else
 		_citrus_MSKanji_init_state(ei, psenc);
-#endif
 		*nresult = 0; /* state independent */
 		return (0);
 	}

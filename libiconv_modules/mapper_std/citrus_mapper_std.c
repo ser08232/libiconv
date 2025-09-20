@@ -100,34 +100,17 @@ _citrus_mapper_std_mapper_getops(struct _citrus_mapper_ops *ops)
 
 static int
 /*ARGSUSED*/
-#ifdef __APPLE__
-rowcol_convert(struct _citrus_mapper_std * __restrict ms,
-    _index_t * __restrict dst, _index_t src, void * __restrict ps __unused,
-    bool translit)
-#else
 rowcol_convert(struct _citrus_mapper_std * __restrict ms,
     _index_t * __restrict dst, _index_t src, void * __restrict ps __unused)
-#endif
 {
 	struct _citrus_mapper_std_linear_zone *lz;
 	struct _citrus_mapper_std_rowcol *rc;
-#ifdef __APPLE__
-	struct _citrus_region *table;
-#endif
 	_index_t idx = 0, n;
 	size_t i;
 	uint32_t conv;
 
 	/* ps may be unused */
 	rc = &ms->ms_rowcol;
-#ifdef __APPLE__
-	table = &rc->rc_table;
-	if (translit) {
-		table = &rc->rc_translit_table;
-		if (_region_size(table) == 0)
-			return (_MAPPER_CONVERT_NONIDENTICAL);
-	}
-#endif
 
 	for (i = rc->rc_src_rowcol_len * rc->rc_src_rowcol_bits,
 	    lz = &rc->rc_src_rowcol[0]; i > 0; ++lz) {
@@ -148,25 +131,13 @@ rowcol_convert(struct _citrus_mapper_std * __restrict ms,
 	}
 	switch (rc->rc_dst_unit_bits) {
 	case 8:
-#ifdef __APPLE__
-		conv = _region_peek8(table, idx);
-#else
 		conv = _region_peek8(&rc->rc_table, idx);
-#endif
 		break;
 	case 16:
-#ifdef __APPLE__
-		conv = be16toh(_region_peek16(table, idx*2));
-#else
 		conv = be16toh(_region_peek16(&rc->rc_table, idx*2));
-#endif
 		break;
 	case 32:
-#ifdef __APPLE__
-		conv = be32toh(_region_peek32(table, idx*4));
-#else
 		conv = be32toh(_region_peek32(&rc->rc_table, idx*4));
-#endif
 		break;
 	default:
 		return (_MAPPER_CONVERT_FATAL);
@@ -325,16 +296,6 @@ rowcol_init(struct _citrus_mapper_std *ms)
 			ret = EFTYPE;
 		return (ret);
 	}
-
-#ifdef __APPLE__
-	/* get any applicable transliteration table */
-	ret = _db_lookup_by_s(ms->ms_db, _CITRUS_MAPPER_STD_SYM_TRANSLIT_TABLE,
-	    &rc->rc_translit_table, NULL);
-	if (ret == ENOENT) {
-		/* Zap it down to empty to indicate that it doesn't exist. */
-		_region_init(&rc->rc_translit_table, NULL, 0);
-	}
-#endif
 
 	/* get table information */
 	ret = _db_lookup_by_s(ms->ms_db, _CITRUS_MAPPER_STD_SYM_INFO, &r, NULL);
@@ -502,62 +463,11 @@ _citrus_mapper_std_mapper_init_state(void)
 
 static int
 /*ARGSUSED*/
-#ifdef __APPLE__
-_citrus_mapper_std_mapper_convert(struct _citrus_mapper * __restrict cm,
-    struct _citrus_mapper_convert_ctx * __restrict ctx)
-#else
 _citrus_mapper_std_mapper_convert(struct _citrus_mapper * __restrict cm,
     _index_t * __restrict dst, _index_t src, void * __restrict ps)
-#endif
 {
 	struct _citrus_mapper_std *ms;
-#ifdef __APPLE__
-	_index_t *dst = ctx->dst, *src = ctx->src;
-	int *cnt = ctx->cnt;
-	void *ps = ctx->ps;
-#endif
 
 	ms = cm->cm_closure;
-#ifdef __APPLE__
-	for (int ret, i = 0; i < *cnt; i++) {
-		/*
-		 * _citrus_mapper_std_convert_t could be altered to understand
-		 * arrays of input/output indices, but we're just shooting for
-		 * the easy gains at the moment.
-		 */
-		ret = ((*ms->ms_convert)(ms, &dst[i], src[i], ps, false));
-		if (ret != _MAPPER_CONVERT_SUCCESS) {
-			assert(_MAPPER_CONVERT_DIR(ret) == 0);
-			if (ret == _MAPPER_CONVERT_NONIDENTICAL) {
-				int tret;
-
-				/*
-				 * Check next if we have a transliteration
-				 * mapping for it.
-				 */
-				tret = ((*ms->ms_convert)(ms, &dst[i], src[i],
-				    ps, true));
-				if (tret == _MAPPER_CONVERT_SUCCESS) {
-					/*
-					 * When iconv_std sees this special
-					 * TRANSLIT return value, it'll know
-					 * that everything before the last
-					 * element was successful, the last was
-					 * unsuccessful but a transliteration is
-					 * available.
-					 */
-					i++;
-					ret = _MAPPER_CONVERT_TRANSLIT;
-				}
-			}
-			*cnt = i;
-
-			return (_MAPPER_CONVERT_COMBINE(cm->cm_dir, ret));
-		}
-	}
-
-	return (_MAPPER_CONVERT_SUCCESS);
-#else
 	return ((*ms->ms_convert)(ms, dst, src, ps));
-#endif
 }

@@ -105,7 +105,6 @@ struct _citrus_iconv_shared {
 	unsigned int					 ci_used_count;
 	char						*ci_convname;
 	bool						 ci_discard_ilseq;
-	bool						 ci_translit;
 	struct iconv_hooks				*ci_hooks;
 	bool						 ci_ilseq_invalid;
 };
@@ -113,10 +112,6 @@ struct _citrus_iconv_shared {
 struct _citrus_iconv {
 	struct _citrus_iconv_shared			*cv_shared;
 	void						*cv_closure;
-#ifdef __APPLE__
-	struct iconv_fallbacks				*cv_fallbacks;
-	int						 cv_wchar_dir;
-#endif
 };
 
 #endif

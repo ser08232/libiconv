@@ -116,7 +116,6 @@ typedef struct {
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
 
-#ifndef __APPLE__
 static __inline void
 /*ARGSUSED*/
 _citrus_BIG5_init_state(_BIG5EncodingInfo * __restrict ei __unused,
@@ -125,7 +124,6 @@ _citrus_BIG5_init_state(_BIG5EncodingInfo * __restrict ei __unused,
 
 	memset(s, 0, sizeof(*s));
 }
-#endif
 
 #if 0
 static __inline void
@@ -284,11 +282,7 @@ _citrus_BIG5_mbrtowc_priv(_BIG5EncodingInfo * __restrict ei,
 	s0 = *s;
 
 	if (s0 == NULL) {
-#ifdef __APPLE__
-		memset(psenc, 0, sizeof(*psenc));
-#else
 		_citrus_BIG5_init_state(ei, psenc);
-#endif
 		*nresult = 0;
 		return (0);
 	}

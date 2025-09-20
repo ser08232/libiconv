@@ -32,12 +32,6 @@
 #ifndef _CITRUS_ICONV_STD_LOCAL_H_
 #define _CITRUS_ICONV_STD_LOCAL_H_
 
-#ifdef __APPLE__
-#include <limits.h>
-
-#define	_ICONV_STD_PERCVT	32
-#endif
-
 /*
  * encoding
  */
@@ -55,9 +49,6 @@ struct _citrus_iconv_std_dst {
 	struct _citrus_csmapper			*sd_mapper;
 	_citrus_csid_t				 sd_csid;
 	unsigned long				 sd_norm;
-#ifdef __APPLE__
-	bool					 sd_idmap;
-#endif
 };
 TAILQ_HEAD(_citrus_iconv_std_dst_list, _citrus_iconv_std_dst);
 
@@ -77,12 +68,6 @@ TAILQ_HEAD(_citrus_iconv_std_src_list, _citrus_iconv_std_src);
 struct _citrus_iconv_std_shared {
 	struct _citrus_stdenc			*is_dst_encoding;
 	struct _citrus_stdenc			*is_src_encoding;
-#ifdef __APPLE__
-	/* Optimization */
-	struct _citrus_iconv_std_dst		*is_lone_dst;
-	_csid_t					 is_lone_dst_csid;
-	int					 is_mapdir;
-#endif
 	struct _citrus_iconv_std_src_list	 is_srcs;
 	_citrus_wc_t				 is_invalid;
 	int					 is_use_invalid;
@@ -92,18 +77,6 @@ struct _citrus_iconv_std_shared {
  * iconv_std context
  */
 struct _citrus_iconv_std_context {
-#ifdef __APPLE__
-	/*
-	 * This will only be used for conversions to/from wchar_t, which are
-	 * relatively infrequent so we just allocate it once with the context
-	 * since it's not a very large buffer rather than wasting even more
-	 * stack on an infrequently used buffer.
-	 */
-	unsigned short				 sc_wcdelta[_ICONV_STD_PERCVT];
-	char					 sc_wcbuf[MB_LEN_MAX];
-
-	mbstate_t				 sc_mbstate;
-#endif
 	struct _citrus_iconv_std_encoding	 sc_dst_encoding;
 	struct _citrus_iconv_std_encoding	 sc_src_encoding;
 };

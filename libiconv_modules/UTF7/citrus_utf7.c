@@ -79,7 +79,6 @@ typedef struct {
 #define	_ENCODING_IS_STATE_DEPENDENT		1
 #define	_STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-#ifndef __APPLE__
 static __inline void
 /*ARGSUSED*/
 _citrus_UTF7_init_state(_UTF7EncodingInfo * __restrict ei __unused,
@@ -88,7 +87,6 @@ _citrus_UTF7_init_state(_UTF7EncodingInfo * __restrict ei __unused,
 
 	memset((void *)s, 0, sizeof(*s));
 }
-#endif
 
 #if 0
 static __inline void
@@ -134,17 +132,7 @@ static const char spaces[] = " \t\r\n";
 #define	BASE64_OUT	'-'
 
 #define	SHIFT7BIT(c)	((c) >> 7)
-#ifdef __APPLE__
-/*
- * CITRUS carves out an exception for the nul byte, but what specifications do
- * exist for UTF-7 do not seem to carve out an exception for U+0000.  Even more,
- * GNU libiconv also does not accept the nul byte, so we should reject it as
- * well here.
- */
-#define	ISSPECIAL(c)	((c) == BASE64_IN)
-#else
 #define	ISSPECIAL(c)	((c) == '\0' || (c) == BASE64_IN)
-#endif
 
 #define	FINDLEN(ei, c) \
 	(SHIFT7BIT((c)) ? -1 : (((ei)->cell[(c)] & EI_MASK) - 1))
@@ -262,11 +250,7 @@ _citrus_UTF7_mbrtowc_priv(_UTF7EncodingInfo * __restrict ei,
 	int err;
 
 	if (*s == NULL) {
-#ifdef __APPLE__
-		memset(psenc, 0, sizeof(*psenc));
-#else
 		_citrus_UTF7_init_state(ei, psenc);
-#endif
 		*nresult = (size_t)_ENCODING_IS_STATE_DEPENDENT;
 		return (0);
 	}
@@ -300,33 +284,14 @@ _citrus_UTF7_mbrtowc_priv(_UTF7EncodingInfo * __restrict ei,
 	u32 = (hi << 10 | lo) + SRG_BASE;
 	siz += nr;
 done:
-#ifndef __APPLE__
 	if (pwc != NULL)
 		*pwc = (wchar_t)u32;
-#endif
 	if (u32 == (uint32_t)0) {
-#ifdef __APPLE__
-		/*
-		 * Attempted to convert a character in neither the direct nor
-		 * the optional direct sets -- this is not recoverable.
-		 */
-		memset(psenc, 0, sizeof(*psenc));
-		*nresult = (size_t)-1;
-		return (EILSEQ);
-#else
 		*nresult = (size_t)0;
 		_citrus_UTF7_init_state(ei, psenc);
-#endif
 	} else {
 		*nresult = siz;
 	}
-#ifdef __APPLE__
-	/*
-	 * Moved to later; don't touch *pwc in case we're on the error path.
-	 */
-	if (pwc != NULL)
-		*pwc = (wchar_t)u32;
-#endif
 	return (err);
 }
 

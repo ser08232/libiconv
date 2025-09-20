@@ -44,10 +44,6 @@
 #include <string.h>
 #include <wchar.h>
 
-#ifdef __APPLE__
-#define _ENCODING_HAVE_MBTOCSN		1
-#endif
-
 #include "citrus_namespace.h"
 #include "citrus_types.h"
 #include "citrus_module.h"
@@ -96,7 +92,6 @@ typedef struct {
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
 
-#ifndef __APPLE__
 static __inline void
 /*ARGSUSED*/
 _citrus_UTF1632_init_state(_UTF1632EncodingInfo *ei __unused,
@@ -105,7 +100,6 @@ _citrus_UTF1632_init_state(_UTF1632EncodingInfo *ei __unused,
 
 	memset(s, 0, sizeof(*s));
 }
-#endif
 
 static int
 _citrus_UTF1632_mbrtowc_priv(_UTF1632EncodingInfo *ei, wchar_t *pwc,
@@ -119,11 +113,7 @@ _citrus_UTF1632_mbrtowc_priv(_UTF1632EncodingInfo *ei, wchar_t *pwc,
 	s0 = *s;
 
 	if (s0 == NULL) {
-#ifdef __APPLE__
-		memset(psenc, 0, sizeof(*psenc));
-#else
 		_citrus_UTF1632_init_state(ei, psenc);
-#endif
 		*nresult = 0; /* state independent */
 		return (0);
 	}
@@ -131,16 +121,6 @@ _citrus_UTF1632_mbrtowc_priv(_UTF1632EncodingInfo *ei, wchar_t *pwc,
 	result = 0;
 	chlenbak = psenc->chlen;
 
-#ifdef __APPLE__
-	/*
-	 * If we have an explicit endian, set it now and skip any of the BOM
-	 * bits below -- those are in the middle of the data stream.
-	 */
-	if ((ei->mode & _MODE_FORCE_ENDIAN) != 0)
-		endian = psenc->current_endian = ei->preffered_endian;
-	else
-		endian = _ENDIAN_UNKNOWN;
-#endif
 refetch:
 	needlen = ((ei->mode & _MODE_UTF32) != 0 || chlenbak >= 2) ? 4 : 2;
 
@@ -151,18 +131,6 @@ refetch:
 		n--;
 		result++;
 	}
-
-#ifdef __APPLE__
-	/*
-	 * Without a forced endian-ness, the data stream may have internal BOM
-	 * bytes to swap back and forth within the stream.  If we have an
-	 * explicit request for endianness, though, BOMs are always converted
-	 * literally.
-	 */
-	if ((ei->mode & _MODE_FORCE_ENDIAN) != 0) {
-		goto skipbom;
-	}
-#endif
 
 	/* judge endian marker */
 	if ((ei->mode & _MODE_UTF32) == 0) {
@@ -194,10 +162,6 @@ refetch:
 	    psenc->current_endian == _ENDIAN_UNKNOWN) ? ei->preffered_endian :
 	    psenc->current_endian;
 
-#ifdef __APPLE__
-skipbom:
-	assert(endian != _ENDIAN_UNKNOWN);
-#endif
 	/* get wc */
 	if ((ei->mode & _MODE_UTF32) == 0) {
 		/* UTF16 */
@@ -219,16 +183,6 @@ skipbom:
 				needlen = 4;
 				goto refetch;
 			}
-#ifdef __APPLE__
-			/*
-			 * GNU libiconv also forbids a high surrogate not
-			 * followed by a low surrogate (below), but it also
-			 * forbids a low surrogate not proceeded by a high
-			 * surrogate (this one).
-			 */
-			if (wc >= 0xDC00 && wc <= 0xDFFF)
-				goto ilseq;
-#endif
 		} else {
 			/* surrogate low */
 			wc -= 0xD800; /* wc : surrogate high (see above) */
@@ -450,15 +404,6 @@ _citrus_UTF1632_encoding_module_init(_UTF1632EncodingInfo * __restrict ei,
 	/* 6: endian + surrogate */
 	/* 8: endian + normal */
 
-#ifdef __APPLE__
-	/*
-	 * 'force' doesn't make sense unless an explicit endian-ness has been
-	 * requested; enforce it.
-	 */
-	if ((ei->mode & _MODE_FORCE_ENDIAN) != 0 &&
-	    ei->preffered_endian == _ENDIAN_UNKNOWN)
-		return (EINVAL);
-#endif
 	if (ei->preffered_endian == _ENDIAN_UNKNOWN) {
 		ei->preffered_endian = _ENDIAN_BIG;
 	}

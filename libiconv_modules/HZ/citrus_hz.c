@@ -43,10 +43,6 @@
 #include <string.h>
 #include <wchar.h>
 
-#ifdef __APPLE__
-#define	_ENCODING_NEED_INIT_STATE	1
-#endif
-
 #include "citrus_namespace.h"
 #include "citrus_types.h"
 #include "citrus_bcs.h"
@@ -155,9 +151,7 @@ _citrus_HZ_init_state(_HZEncodingInfo * __restrict ei,
     _HZState * __restrict psenc)
 {
 
-#ifndef __APPLE__
 	psenc->chlen = 0;
-#endif
 	psenc->inuse = INIT0(ei);
 }
 
@@ -194,9 +188,6 @@ _citrus_HZ_mbrtowc_priv(_HZEncodingInfo * __restrict ei,
 	int bit, ch, head, len, tail;
 
 	if (*s == NULL) {
-#ifdef __APPLE__
-		memset(psenc, 0, sizeof(*psenc));
-#endif
 		_citrus_HZ_init_state(ei, psenc);
 		*nresult = 1;
 		return (0);

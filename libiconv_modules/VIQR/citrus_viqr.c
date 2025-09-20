@@ -223,7 +223,6 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT		1
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-#ifndef __APPLE__
 static __inline void
 /*ARGSUSED*/
 _citrus_VIQR_init_state(_VIQREncodingInfo * __restrict ei __unused,
@@ -232,7 +231,6 @@ _citrus_VIQR_init_state(_VIQREncodingInfo * __restrict ei __unused,
 
 	psenc->chlen = 0;
 }
-#endif
 
 #if 0
 static __inline void
@@ -266,11 +264,7 @@ _citrus_VIQR_mbrtowc_priv(_VIQREncodingInfo * __restrict ei,
 	int ch, escape;
 
 	if (*s == NULL) {
-#ifdef __APPLE__
-		memset(psenc, 0, sizeof(*psenc));
-#else
 		_citrus_VIQR_init_state(ei, psenc);
-#endif
 		*nresult = (size_t)_ENCODING_IS_STATE_DEPENDENT;
 		return (0);
 	}
@@ -285,12 +279,6 @@ _citrus_VIQR_mbrtowc_priv(_VIQREncodingInfo * __restrict ei,
 				*nresult = (size_t)-2;
 				return (0);
 			}
-#ifdef __APPLE__
-			if (psenc->chlen == sizeof(psenc->ch)) {
-				*nresult = (size_t)-1;
-				return (EILSEQ);
-			}
-#endif
 			psenc->ch[psenc->chlen++] = *s0++;
 		}
 		ch = (unsigned char)psenc->ch[i++];
